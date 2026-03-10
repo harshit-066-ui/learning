@@ -1,0 +1,19 @@
+/* Tailwind v4 uses only utilities */
+@tailwind utilities;
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: system-ui, sans-serif;
+}
+
+body {
+  background-color: #f3f4f6; /* Tailwind gray-100 */
+  color: #111827; /* Tailwind gray-900 */
+  scroll-behavior: smooth;
+}
+
+* {
+  box-sizing: border-box;
+}
