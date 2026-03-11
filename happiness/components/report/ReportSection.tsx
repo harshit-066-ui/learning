@@ -1,27 +1,15 @@
-import React, { useEffect, useState } from "react";
-import { Radar } from "react-chartjs-2";
+import React from "react";
 import {
-  Chart as ChartJS,
-  RadialLinearScale,
-  PointElement,
-  LineElement,
-  Filler,
-  Tooltip,
-  Legend
-} from "chart.js";
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  Radar,
+  ResponsiveContainer,
+  RadialBarChart,
+  RadialBar
+} from "recharts";
 
-import { generateAIResponse } from "../../lib/utils/aiClient";
-
-ChartJS.register(
-  RadialLinearScale,
-  PointElement,
-  LineElement,
-  Filler,
-  Tooltip,
-  Legend
-);
-
-interface ReportSectionProps {
+interface ReportProps {
   report: {
     categories: string[];
     scores: number[];
@@ -29,133 +17,133 @@ interface ReportSectionProps {
   };
 }
 
-const ReportSection: React.FC<ReportSectionProps> = ({ report }) => {
-  const [aiText, setAiText] = useState(
-    "Generating your personalized happiness report..."
-  );
+const ReportSection: React.FC<ReportProps> = ({ report }) => {
 
+  if (!report) return null;
+
+  const radarData = report.categories.map((cat, i) => ({
+    category: cat,
+    score: report.scores[i]
+  }));
+
+  const gaugeScore = Math.round(report.overall);
+
+  const gaugeData = [
+    {
+      name: "Happiness",
+      value: gaugeScore
+    }
+  ];
+
+  const strongestIndex = report.scores.indexOf(Math.max(...report.scores));
   const weakestIndex = report.scores.indexOf(Math.min(...report.scores));
 
-  const strongestCategories = report.categories.filter(
-    (_, i) => i !== weakestIndex
-  );
+  const strongestCategory = report.categories[strongestIndex];
+  const weakestCategory = report.categories[weakestIndex];
 
-  useEffect(() => {
-    const prompt = `
-Write a simple, friendly, easy-to-understand happiness report for a user.
-
-Category scores:
-${report.categories
-  .map((cat, i) => `- ${cat}: ${report.scores[i]}`)
-  .join("\n")}
-
-Overall happiness score: ${report.overall}
-
-Weakest category: ${report.categories[weakestIndex]}
-
-Strong categories: ${strongestCategories.join(", ")}
-
-Instructions:
-1. Compliment the user on their strong areas.
-2. Encourage them to maintain those strengths.
-3. Gently explain the weakest area without comparing them to others.
-4. Suggest simple actionable steps a normal person can follow.
-`;
-
-    const generateReport = async () => {
-      const response = await generateAIResponse(prompt, "Happiness Report");
-      setAiText(response);
-    };
-
-    generateReport();
-  }, []);
-
-  const data = {
-    labels: report.categories,
-    datasets: [
-      {
-        label: "Category Scores",
-        data: report.scores,
-        backgroundColor: "rgba(59,130,246,0.2)",
-        borderColor: "rgba(59,130,246,1)",
-        borderWidth: 2,
-        pointBackgroundColor: "rgba(59,130,246,1)"
-      }
-    ]
-  };
-
-  const getStatus = (score: number) => {
-    if (score <= 8) {
-      return { label: "Needs Improvement", color: "bg-red-500" };
-    }
-
-    if (score <= 12) {
-      return { label: "Maintain", color: "bg-yellow-400" };
-    }
-
-    return { label: "Strong", color: "bg-green-500" };
+  const getScoreLabel = (score: number) => {
+    if (score > 80) return "Excellent Wellbeing";
+    if (score > 60) return "Good Wellbeing";
+    if (score > 40) return "Moderate Wellbeing";
+    return "Needs Improvement";
   };
 
   return (
-    <div className="max-w-6xl mx-auto bg-white shadow-xl rounded-xl p-8">
+    <div className="bg-white shadow-lg rounded-xl p-8 w-full max-w-4xl flex flex-col items-center gap-10">
 
-      {/* Title */}
-      <h1 className="text-4xl font-bold text-center mb-10 bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
-        Your Personalized Happiness Report
-      </h1>
+      <h2 className="text-3xl font-bold text-blue-700">
+        Your Happiness Report
+      </h2>
 
-      {/* Chart + AI Insight */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-start">
+      {/* Happiness Gauge */}
+      <div className="flex flex-col items-center">
 
-        {/* Radar Chart */}
-        <div className="flex flex-col items-center">
+        <p className="text-gray-600 mb-2">
+          Overall Happiness Score
+        </p>
 
-          <div className="w-80">
-            <Radar data={data} />
-          </div>
+        <div style={{ width: 260, height: 260 }}>
 
-          {/* Category Status */}
-          <div className="mt-8 w-full grid grid-cols-1 gap-3">
-
-            {report.categories.map((cat, i) => {
-              const status = getStatus(report.scores[i]);
-
-              return (
-                <div
-                  key={cat}
-                  className="flex justify-between items-center bg-gray-100 p-3 rounded-lg"
-                >
-                  <span className="text-sm font-medium">{cat}</span>
-
-                  <span
-                    className={`text-white text-xs px-3 py-1 rounded ${status.color}`}
-                  >
-                    {status.label}
-                  </span>
-                </div>
-              );
-            })}
-
-          </div>
+          <ResponsiveContainer width="100%" height="100%">
+            <RadialBarChart
+              innerRadius="70%"
+              outerRadius="100%"
+              data={gaugeData}
+              startAngle={180}
+              endAngle={0}
+            >
+              <RadialBar
+                dataKey="value"
+                fill="#3b82f6"
+                cornerRadius={10}
+                animationDuration={1200}
+              />
+            </RadialBarChart>
+          </ResponsiveContainer>
 
         </div>
 
-        {/* AI Insight */}
-        <div>
+        <p className="text-3xl font-bold text-blue-700 mt-3">
+          {gaugeScore}/100
+        </p>
 
-          <div className="bg-gray-50 p-6 rounded-xl shadow-inner">
+        <p className="text-gray-600 mt-2">
+          {getScoreLabel(gaugeScore)}
+        </p>
 
-            <h2 className="text-xl font-semibold mb-4">
-              AI Insight
-            </h2>
+      </div>
 
-            <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-              {aiText}
-            </p>
+      {/* AI Insight Section */}
+      <div className="bg-blue-50 border border-blue-200 p-6 rounded-lg w-full">
 
-          </div>
+        <h3 className="text-xl font-semibold text-blue-700 mb-3">
+          AI Insight
+        </h3>
 
-        </div>
+        <p className="text-gray-700">
+          Your strongest area is <b>{strongestCategory}</b>. This suggests that
+          you are maintaining habits and attitudes that support this part of your wellbeing.
+        </p>
+
+        <p className="text-gray-700 mt-2">
+          Your lowest scoring area is <b>{weakestCategory}</b>. Focusing on small
+          improvements here could significantly increase your overall happiness
+          and life satisfaction.
+        </p>
+
+        <p className="text-gray-700 mt-2">
+          Consider building simple daily habits to strengthen this area. You can
+          generate a personalized 7-day improvement plan using the AI coach below.
+        </p>
+
+      </div>
+
+      {/* Radar Chart */}
+      <div style={{ width: "100%", height: 400 }}>
+
+        <ResponsiveContainer width="100%" height="100%">
+
+          <RadarChart data={radarData}>
+
+            <PolarGrid />
+
+            <PolarAngleAxis
+              dataKey="category"
+              tick={{ fontSize: 12 }}
+            />
+
+            <Radar
+              name="Score"
+              dataKey="score"
+              stroke="#2563eb"
+              fill="#3b82f6"
+              fillOpacity={0.6}
+              animationDuration={1200}
+            />
+
+          </RadarChart>
+
+        </ResponsiveContainer>
 
       </div>
 
